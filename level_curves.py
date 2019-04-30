@@ -131,16 +131,18 @@ while numCurves < maxNumCurves and value > y_min:
     numCells = pdc.GetNumberOfCells()
 
     if numCells < minNumCells and value < mid:
-        # print("region was too small, aborting!")
+        print("region was too small, aborting!")
         break
 
-    f = open("l" + str(value) + "_c" + str(numCurves) + ".csv", 'w+')
+    f = open(str(numCurves) + ".csv", 'w+')
     print("curve ", args.input, " level ", str(value))
 
     # adding to values array for saving all contours together in one file
     values.append(value)
 
     # first lets try to find the start and end of the curve in case it is open
+    #  we need to be consistent with the side of the curve we start with
+    # here probably the one with lesser x would be a good choice
     for i in range(numCells):
         pointId1 = pdc.GetCell(i).GetPointId(0)
         pointId2 = pdc.GetCell(i).GetPointId(1)
@@ -239,3 +241,10 @@ writer.SetFileName(args.input + "contours.ply")
 writer.SetInputData(con.GetOutput())
 writer.Update()
 writer.Write()
+
+# writing levels
+levelFile = open('levels.txt', 'w+')
+for i in range(len(values)):
+    levelFile.write('%f\n' % values[i])
+
+levelFile.close()
