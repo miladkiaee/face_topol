@@ -71,9 +71,9 @@ for i in range(numPoints):
 pd.GetPointData().SetScalars(zs)
 
 # ## ##
-maxNumCurves = 200
+maxNumCurves = 400
 # elongY = 80
-elongZ = 160
+elongZ = 200
 delta = abs(z_max - z_min)/10000
 increment = 0.5
 value = z_min  # + 5*delta
@@ -87,6 +87,7 @@ MinXs = []
 
 numCurves = 0
 minNumCells = 200
+extremelyLow = 100
 
 while numCurves < maxNumCurves and value < (z_min + elongZ):
 
@@ -136,6 +137,9 @@ while numCurves < maxNumCurves and value < (z_min + elongZ):
 
     if numCells < minNumCells and value > mid:
         print("region was too small, aborting!")
+        break
+    if numCells < extremelyLow:
+        print("starting region was too small, aborting!")
         break
 
     f = open(str(numCurves) + ".csv", 'w+')
