@@ -2,31 +2,37 @@
 # and to save some level curve points set files
 # Kitware's visualization toolkit
 import vtk
+import sys
+
 from argparse import ArgumentParser
+from smoothFace import smooth
+from cleanFace import cleaner
 
 parser = ArgumentParser()
 parser.add_argument("-i", "--input", default="", help="input polydata file name")
+parser.add_argument("-a", "--along", default="", help="the axis of level curves")
 
 args = parser.parse_args()
 
 reader = vtk.vtkPLYReader()
 reader.SetFileName(args.input)
 reader.Update()
-# reader output to a polydata object
 pd = reader.GetOutput()
 
-# smooth
-smoother = vtk.vtkSmoothPolyDataFilter()
-smoother.SetInputData(reader.GetOutput())
-smoother.SetFeatureEdgeSmoothing(True)
-smoother.SetFeatureAngle(180)
-smoother.SetRelaxationFactor(0.1)
-smoother.SetEdgeAngle(180)
-smoother.SetBoundarySmoothing(True)
-smoother.SetNumberOfIterations(400)
-smoother.Update()
+# removing the non manifold cells
+non_man = vtk.vtkFeatureEdges()
+non_man.SetInputData(pd)
+non_man.BoundaryEdgesOff()
+non_man.FeatureEdgesOff()
+non_man.NonManifoldEdgesOn()
+non_man.Update()
 
-pd = smoother.GetOutput()
+# smooth
+pd = smooth(pd, feature_angle=160,
+            edge_angle=160, relax=0.25, num_iter=100,
+            file_path=args.input)
+
+pd = cleaner(pd, toler=0.01)
 
 b = pd.GetBounds()
 x_min = b[0]
@@ -35,61 +41,96 @@ y_min = b[2]
 y_max = b[3]
 z_min = b[4]
 z_max = b[5]
-mid = z_min + (z_max - z_min)/2
-# con_r = [z_min, z_max]
 
-# clipping data to get rid of first 1/10 x of data
-# clipHeight = y_min + (y_max - y_min)/15
-# plane = vtk.vtkPlane()
-# p = [0, clipHeight, 0]
-# plane.SetOrigin(p)
-# n = [0, 1, 0]
-# plane.SetNormal(n)
-# clip = vtk.vtkClipPolyData()
-# clip.SetInputData(pd)
-# clip.SetClipFunction(plane)
-# clip.SetValue(0)
-# clip.Update()
+mid = 1000
 
-# pd = clip.GetOutput()
+if args.along == "x":
+    mid = x_min + (x_max - x_min)/2
+if args.along == "y":
+    mid = y_min + (y_max - y_min)/2
+if args.along == "z":
+    mid = z_min + (z_max - z_min)/2
 
 # ## ##
 # print the curve points set data file
 numPoints = pd.GetNumberOfPoints()
 
-# we are going to set z as a scalar array for point data
-zs = vtk.vtkDoubleArray()
-zs.SetName("some_component")
-zs.SetNumberOfValues(numPoints)
+# we are going to set al as a scalar array for point data
+al = args.along
+
+als = vtk.vtkDoubleArray()
+als.SetName("some_component")
+als.SetNumberOfValues(numPoints)
 
 p = [0, 0, 0]
 # set the scalar array to be the z coordinate
-for i in range(numPoints):
-    pd.GetPoint(i, p)
-    zs.SetValue(i, p[2])
+if al == "x":
+    for i in range(numPoints):
+        pd.GetPoint(i, p)
+        als.SetValue(i, p[0])
+if al == "y":
+    for i in range(numPoints):
+        pd.GetPoint(i, p)
+        als.SetValue(i, p[1])
+if al == "z":
+    for i in range(numPoints):
+        pd.GetPoint(i, p)
+        als.SetValue(i, p[2])
 
-pd.GetPointData().SetScalars(zs)
+pd.GetPointData().SetScalars(als)
 
 # ## ##
-maxNumCurves = 400
-# elongY = 80
-elongZ = 200
-delta = abs(z_max - z_min)/10000
-increment = 0.5
-value = z_min  # + 5*delta
+maxNumCurves = 0
+elong = 0
+delta = 0
+increment = 0
+value = 0
+maxx = 0
+minn = 0
+
+if args.along == "x":
+    maxNumCurves = 100
+    elong = 200
+    delta = abs(x_max - x_min)/1000
+    increment = abs(x_max - x_min)/100
+    value = x_min
+    maxx = x_max
+    minn = x_min
+
+if args.along == "y":
+    maxNumCurves = 250
+    elong = 100
+    delta = abs(y_max - y_min)/10000
+    increment = abs(y_max - y_min)/100
+    value = y_min
+    maxx = y_max
+    minn = y_min
+
+if args.along == "z":
+    maxNumCurves = 400
+    elong = 400
+    delta = abs(z_max - z_min)/10000
+    increment = abs(z_max - z_min)/200
+    value = z_min
+    maxx = z_max
+    minn = z_min
 
 values = []
 centersX = []
 centersY = []
 centersZ = []
-MaxZs = []
 MinXs = []
+MaxXs = []
+MinYs = []
+MaxYs = []
+MinZs = []
+MaxZs = []
 
 numCurves = 0
-minNumCells = 200
-extremelyLow = 100
+minNumCells = 40
+extremelyLow = 20
 
-while numCurves < maxNumCurves and value < (z_min + elongZ):
+while numCurves < maxNumCurves and value < (minn + elong) and value < (maxx - 2*increment):
 
     value = value + increment
     con = vtk.vtkContourFilter()
@@ -106,7 +147,10 @@ while numCurves < maxNumCurves and value < (z_min + elongZ):
     conn.Update()
     numRegions = conn.GetNumberOfExtractedRegions()
 
-    while numRegions != 1 and value < z_max:
+    numPoints = pdc.GetNumberOfPoints()
+    numCells = pdc.GetNumberOfCells()
+
+    while numCells < extremelyLow or numRegions != 1 and value < maxx:
         value = value + delta
         # print("trying value ", value)
         con = vtk.vtkContourFilter()
@@ -120,10 +164,13 @@ while numCurves < maxNumCurves and value < (z_min + elongZ):
         conn.SetInputData(pdc)
         conn.Update()
         numRegions = conn.GetNumberOfExtractedRegions()
+        numPoints = pdc.GetNumberOfPoints()
+        numCells = pdc.GetNumberOfCells()
         # print("num regions: ", numRegions)
 
     # print ("value = ", value)
-    if value > z_max:
+    if value > maxx:
+        print("exceeded boundary!")
         break
 
     # we are going through all points but in order of neighboring
@@ -132,14 +179,9 @@ while numCurves < maxNumCurves and value < (z_min + elongZ):
     orderedCellIds = vtk.vtkIdList()
 
     closed = True
-    numPoints = pdc.GetNumberOfPoints()
-    numCells = pdc.GetNumberOfCells()
 
     if numCells < minNumCells and value > mid:
         print("region was too small, aborting!")
-        break
-    if numCells < extremelyLow:
-        print("starting region was too small, aborting!")
         break
 
     f = open(str(numCurves) + ".csv", 'w+')
@@ -151,6 +193,7 @@ while numCurves < maxNumCurves and value < (z_min + elongZ):
     # first lets try to find the start and end of the curve in case it is open
     # we need to be consistent with the side of the curve we start with
     # here probably the one with lesser x would be a good choice
+    # if curve is in zy plane we wanna choose one with lesser z
     prevId = -1
     for i in range(numCells):
         # for each cell get point id of the two sides
@@ -163,6 +206,7 @@ while numCurves < maxNumCurves and value < (z_min + elongZ):
 
         # cell ids for firs point of the cell
         big = 1000
+        xx = big
         pdc.GetPointCells(pointId1, cellIds)
         nc = cellIds.GetNumberOfIds()
         if nc == 1:
@@ -171,28 +215,37 @@ while numCurves < maxNumCurves and value < (z_min + elongZ):
             closed = False
             p = [0, 0, 0]
             pdc.GetPoint(pointId1, p)
-            x = p[0]
-            if x < big:
-                big = x
+            if args.along == "z" or args.along == "y":
+                xx = p[0]
+            if args.along == "x":
+                xx = p[2]
+            if xx < big:
+                big = xx
                 pointId = pointId1
         if (nc == 0) or (nc > 2):
-            print("problem with point cell!")
+            print("number of cellIds:", nc)
+            sys.exit("error with number of connected cells")
 
     if closed:
         # print("curve is closed")
-        # for closed curve we want to start at point with smallest x
+        # for closed curve we want to start at point with smallest x??
+        # if in zy plane we want smallest z
         pointId = 0
         p = [0, 0, 0]
         big = 1000
         np = pdc.GetNumberOfPoints()
+        zz = big
 
         for i in range(np):
-
             pdc.GetPoint(i, p)
-            z = p[2]
 
-            if z < big:
-                big = z
+            if args.along == "z" or args.along == "y":
+                zz = p[0]
+            if args.along == "x":
+                zz = p[2]
+
+            if zz < big:
+                big = zz
                 pointId = i
 
         orderedPointIds.InsertNextId(pointId)
@@ -203,10 +256,8 @@ while numCurves < maxNumCurves and value < (z_min + elongZ):
 
         # for j in range(orderedPointIds.GetNumberOfIds()):
         # print (" ", orderedPointIds.GetId(j)),
-
         nextPointId = orderedPointIds.GetId(i)
         # print("pointId: ", nextPointId)
-
         pdc.GetPointCells(nextPointId, cellIds)
 
         # print("this point shared with how many cells: ", cellIds.GetNumberOfIds())
@@ -249,8 +300,16 @@ while numCurves < maxNumCurves and value < (z_min + elongZ):
     # get the maximum of z coordinate by the bounds
     bc = pdc.GetBounds()
     xc_min = bc[0]
+    xc_max = bc[1]
+    yc_min = bc[2]
+    yc_max = bc[3]
+    zc_min = bc[4]
     zc_max = bc[5]
     MinXs.append(xc_min)
+    MaxXs.append(xc_max)
+    MinYs.append(yc_min)
+    MaxYs.append(yc_max)
+    MinZs.append(zc_min)
     MaxZs.append(zc_max)
 
     # in order to put center of mass as origin we want to deduct the first one from the rest of the points
@@ -272,8 +331,12 @@ while numCurves < maxNumCurves and value < (z_min + elongZ):
 
         # we are doing the x y z to y z x move for the geodesic software preferences
         # relative to the initial coordinates of the point in the curve
-        f.write('%f, %f, %f\n' % (p[0] - center[0], p[1] - center[1], p[2] - center[2]))
-
+        if args.along == "x":
+            f.write('%f, %f, %f\n' % (p[1], p[0], p[2]))
+        if args.along == "y":
+            f.write('%f, %f, %f\n' % (p[0], p[1], p[2]))
+        if args.along == "z":
+            f.write('%f, %f, %f\n' % (p[0], p[2], p[1]))
     f.close()
     numCurves = numCurves + 1
     # print("curve number ", numCurves)
@@ -297,13 +360,23 @@ writer.Write()
 levelFile = open('levels.txt', 'w+')
 
 for i in range(len(values)):
-    if i == 0:
+    if i == -1:
         rx = 0
+        rxx = 0
+        ry = 0
+        ryy = 0
         rz = 0
+        rzz = 0
     else:
-        rx = MinXs[i] - MinXs[0]
-        rz = MaxZs[i] - MaxZs[0]
+        rx = MinXs[i]
+        rxx = MaxXs[i]
+        ry = MinYs[i]
+        ryy = MaxYs[i]
+        rz = MinZs[i]
+        rzz = MaxZs[i]
 
-    levelFile.write('%f, %f, %f, %f, %f, %f\n' % (values[i], centersX[i], centersY[i], centersZ[i], rx, rz))
+    levelFile.write('%f, %f, %f, %f, %f, %f, %f, %f, %f, %f\n'
+                    % (values[i], centersX[i], centersY[i], centersZ[i],
+                       rx, rxx, ry, ryy, rz, rzz))
 
 levelFile.close()

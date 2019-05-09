@@ -2,27 +2,35 @@ import vtk
 import math
 import csv
 
-numberOfLevels = 160
-numberOfGeo = 50
+numberOfLevels = 168
+numberOfGeo = 200
 
-origin_subject = "CC031"
+origin_subject = "ADULT01"
 destination_subject = "CC077"
 
 d = "/home/milad/face_topol/geodesic/"
-d2 = "/home/milad/face_topol/polys/aligned/"
+d2 = "/home/milad/face_topol/polys/aligned_z/"
 
 d2_ws_1 = d2 + origin_subject + "Aligned.ply-ws/"
 d2_ws_2 = d2 + destination_subject + "Aligned.ply-ws/"
 
 centersX_1 = []
 centersZ_1 = []
+relMinsX_1 = []
+relMaxsX_1 = []
+relMinsY_1 = []
+relMaxsY_1 = []
+relMinsZ_1 = []
 relMaxsZ_1 = []
-relMinX_1 = []
 
 centersX_2 = []
 centersZ_2 = []
+relMinsX_2 = []
+relMaxsX_2 = []
+relMinsY_2 = []
+relMaxsY_2 = []
+relMinsZ_2 = []
 relMaxsZ_2 = []
-relMinX_2 = []
 
 with open(d2_ws_1 + "levels.txt") as csv_file:
     csv_reader = csv.reader(csv_file, delimiter=',')
@@ -31,8 +39,12 @@ with open(d2_ws_1 + "levels.txt") as csv_file:
         line_count += 1
         centersX_1.append(float(row[1]))
         centersZ_1.append(float(row[3]))
-        relMinX_1.append(float(row[4]))
-        relMaxsZ_1.append(float(row[5]))
+        relMinsX_1.append(float(row[4]))
+        relMaxsX_1.append(float(row[5]))
+        relMinsY_1.append(float(row[6]))
+        relMaxsY_1.append(float(row[7]))
+        relMinsZ_1.append(float(row[8]))
+        relMaxsZ_1.append(float(row[9]))
 
 with open(d2_ws_2 + "levels.txt") as csv_file:
     csv_reader = csv.reader(csv_file, delimiter=',')
@@ -41,8 +53,12 @@ with open(d2_ws_2 + "levels.txt") as csv_file:
         line_count += 1
         centersX_2.append(float(row[1]))
         centersZ_2.append(float(row[3]))
-        relMinX_2.append(float(row[4]))
-        relMaxsZ_2.append(float(row[5]))
+        relMinsX_2.append(float(row[4]))
+        relMaxsX_2.append(float(row[5]))
+        relMinsY_2.append(float(row[6]))
+        relMaxsY_2.append(float(row[7]))
+        relMinsZ_2.append(float(row[8]))
+        relMaxsZ_2.append(float(row[9]))
 
 for i in range(numberOfGeo):
     for j in range(numberOfLevels):
@@ -103,14 +119,18 @@ for i in range(numberOfGeo):
 
         b = poly.GetBounds()
         x_min = b[0]
+        x_max = b[1]
+        y_min = b[2]
+        y_max = b[3]
+        z_min = b[4]
         z_max = b[5]
 
         trans = vtk.vtkTransform()
         frac_1 = 1 - float(i)/float(numberOfGeo)
         frac_2 = float(i)/float(numberOfGeo)
-        trans.Translate(-x_min + frac_1*relMinX_1[j] + frac_2*relMinX_2[j],
+        trans.Translate(-x_min + frac_1*relMinsX_1[j] + frac_2*relMinsX_2[j],
                         0,
-                        -z_max + frac_1*relMaxsZ_1[j] + frac_2*relMaxsZ_2[j])
+                        -z_min + frac_1*relMinsY_1[j] + frac_2*relMinsY_2[j])
         transF = vtk.vtkTransformPolyDataFilter()
         transF.SetInputData(poly)
         transF.SetTransform(trans)
