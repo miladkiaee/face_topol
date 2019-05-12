@@ -1,7 +1,8 @@
 import vtk
 
 
-def smooth(poly, feature_angle, edge_angle, relax, num_iter, file_path):
+def smooth(poly, feature_angle, edge_angle,
+           relax, num_iter, file_path):
 
     print("smoothing ..")
     smoother = vtk.vtkSmoothPolyDataFilter()

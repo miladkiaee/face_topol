@@ -7,6 +7,8 @@ import sys
 from argparse import ArgumentParser
 from smoothFace import smooth
 from cleanFace import cleaner
+from seperateNonManifold import separate
+from reduceTriangles import reduce
 
 parser = ArgumentParser()
 parser.add_argument("-i", "--input", default="", help="input polydata file name")
@@ -19,20 +21,25 @@ reader.SetFileName(args.input)
 reader.Update()
 pd = reader.GetOutput()
 
+# triangulate in case
+trif = vtk.vtkTriangleFilter()
+trif.SetInputData(pd)
+trif.Update()
+
+pd = trif.GetOutput()
+
 # removing the non manifold cells
-non_man = vtk.vtkFeatureEdges()
-non_man.SetInputData(pd)
-non_man.BoundaryEdgesOff()
-non_man.FeatureEdgesOff()
-non_man.NonManifoldEdgesOn()
-non_man.Update()
+# pd = separate(pd, args.input)
+
+# reduce the poly data
+pd = reduce(pd, args.input)
 
 # smooth
-pd = smooth(pd, feature_angle=160,
-            edge_angle=160, relax=0.25, num_iter=100,
-            file_path=args.input)
+# pd = smooth(pd, feature_angle=160,
+#             edge_angle=160, relax=0.2, num_iter=20,
+#            file_path=args.input)
 
-pd = cleaner(pd, toler=0.01)
+# pd = cleaner(pd, toler=0.01)
 
 b = pd.GetBounds()
 x_min = b[0]
@@ -130,7 +137,10 @@ numCurves = 0
 minNumCells = 40
 extremelyLow = 20
 
-while numCurves < maxNumCurves and value < (minn + elong) and value < (maxx - 2*increment):
+# starting the find contour curves
+while numCurves < maxNumCurves and \
+        value < (minn + elong) and \
+        value < (maxx - 2*increment):
 
     value = value + increment
     con = vtk.vtkContourFilter()
@@ -150,7 +160,9 @@ while numCurves < maxNumCurves and value < (minn + elong) and value < (maxx - 2*
     numPoints = pdc.GetNumberOfPoints()
     numCells = pdc.GetNumberOfCells()
 
-    while numCells < extremelyLow or numRegions != 1 and value < maxx:
+    while numRegions !=1 or \
+            numCells < extremelyLow and value < maxx:
+
         value = value + delta
         # print("trying value ", value)
         con = vtk.vtkContourFilter()
@@ -160,6 +172,7 @@ while numCurves < maxNumCurves and value < (minn + elong) and value < (maxx - 2*
         con.ComputeScalarsOn()
         con.Update()
         pdc = con.GetOutput()
+
         conn = vtk.vtkConnectivityFilter()
         conn.SetInputData(pdc)
         conn.Update()
@@ -178,8 +191,6 @@ while numCurves < maxNumCurves and value < (minn + elong) and value < (maxx - 2*
     orderedPointIds = vtk.vtkIdList()
     orderedCellIds = vtk.vtkIdList()
 
-    closed = True
-
     if numCells < minNumCells and value > mid:
         print("region was too small, aborting!")
         break
@@ -195,6 +206,8 @@ while numCurves < maxNumCurves and value < (minn + elong) and value < (maxx - 2*
     # here probably the one with lesser x would be a good choice
     # if curve is in zy plane we wanna choose one with lesser z
     prevId = -1
+    closed = True
+
     for i in range(numCells):
         # for each cell get point id of the two sides
         pointId1 = pdc.GetCell(i).GetPointId(0)
@@ -224,7 +237,7 @@ while numCurves < maxNumCurves and value < (minn + elong) and value < (maxx - 2*
                 pointId = pointId1
         if (nc == 0) or (nc > 2):
             print("number of cellIds:", nc)
-            sys.exit("error with number of connected cells")
+            sys.exit("error with manifold")
 
     if closed:
         # print("curve is closed")
