@@ -2,9 +2,9 @@ import vtk
 import sys
 
 
-def initial_reorder(pdc, option):
+def initial_reorder(poly, option):
 
-    num_cells = pdc.GetNumberOfCells()
+    num_cells = poly.GetNumberOfCells()
     closed = True
     prev_id = -1
     ipid = -1
@@ -12,24 +12,24 @@ def initial_reorder(pdc, option):
 
     for i in range(num_cells):
         # for each cell get point id of the two sides
-        point_id1 = pdc.GetCell(i).GetPointId(0)
+        point_id1 = poly.GetCell(i).GetPointId(0)
 
         if point_id1 == prev_id:
-            point_id1 = pdc.GetCell(i).GetPointId(1)
+            point_id1 = poly.GetCell(i).GetPointId(1)
 
         prev_id = point_id1
 
         # cell ids for firs point of the cell
         big = 1000
         xx = big
-        pdc.GetPointCells(point_id1, cell_ids)
+        poly.GetPointCells(point_id1, cell_ids)
         nc = cell_ids.GetNumberOfIds()
         if nc == 1:
             # print("curve is open at point", pointId1)
             ipid = point_id1
             closed = False
             p = [0, 0, 0]
-            pdc.GetPoint(point_id1, p)
+            poly.GetPoint(point_id1, p)
             if option == "z" or option == "y":
                 xx = p[0]
             if option == "x":
@@ -48,11 +48,11 @@ def initial_reorder(pdc, option):
         point_id = 0
         p = [0, 0, 0]
         big = 1000
-        np = pdc.GetNumberOfPoints()
+        np = poly.GetNumberOfPoints()
         zz = big
 
         for i in range(np):
-            pdc.GetPoint(i, p)
+            poly.GetPoint(i, p)
 
             if option == "z" or option == "y":
                 zz = p[0]
@@ -70,10 +70,14 @@ def initial_reorder(pdc, option):
 
 def reorder(poly, ipid):
 
-    num_points = poly.GetNumberOfPoints()
+    num_cells = poly.GetNumberOfCells()
     opid = vtk.vtkIdList()
     opid.InsertNextId(ipid)
     cell_ids = vtk.vtkIdList()
+
+    # make sure points are the points of the cell
+    for i in range(num_cells):
+        poly.GetCellPoints()
 
     for i in range(num_points - 2):
 

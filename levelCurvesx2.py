@@ -9,7 +9,7 @@ from argparse import ArgumentParser
 from smoothFace import smooth
 from cleanFace import cleaner
 from seperateNonManifold import separate
-from reduceTriangles import reduce
+from reduceTriangles import reduce_it
 from reorderPoints import initial_reorder
 from reorderPoints import reorder
 from geometric_information import information
@@ -37,7 +37,7 @@ pd = trif.GetOutput()
 # pd = separate(pd, args.input)
 
 # reduce the poly data
-pd = reduce(pd, args.input)
+pd = reduce_it(pd, args.input)
 
 # smooth
 # pd = smooth(pd, feature_angle=160,
@@ -186,9 +186,17 @@ while numCurves < maxNumCurves and \
     ordered_points_ids = vtk.vtkIdList()
     ordered_cells_ids = vtk.vtkIdList()
 
+    # array of sub polydata included in an individual contour
+    if numRegions == 1:
+        initial_point_id = initial_reorder(pdc, args.along)
+        ordered_points_ids = reorder(pdc, initial_point_id)
+        write_ordered_csv(pdc, numCurves, value,
+                          ordered_points_ids, args.input, args.along)
+
     if numRegions > 1:
+        sub_pds = []
         max_index = np.zeros(numRegions)
-        max_z = np.zeros(numRegions)
+        max_region_z = np.zeros(numRegions)
         for region_index in range(numRegions):
             # finding max z of each region
             tmp_conn = vtk.vtkConnectivityFilter()
@@ -197,38 +205,34 @@ while numCurves < maxNumCurves and \
             tmp_conn.AddSpecifiedRegion(region_index)
             tmp_conn.Update()
             tmp_pd = tmp_conn.GetPolyDataOutput()
+            sub_pds.append(tmp_pd)
             tmp_num_points = tmp_pd.GetNumberOfPoints()
-            p = [0, 0, 0]
-            small = -1000
-            for point_index in range(tmp_num_points):
-                tmp_pd.GetPoint(point_index, p)
-                tmp = p[2]
-                if tmp > small:
-                    small = tmp
-                    max_z[region_index] = tmp
-                    max_index[region_index] = point_index
+            if tmp_num_points > 1:
+                p = [0, 0, 0]
+                small = -1000
+                for point_index in range(tmp_num_points):
+                    tmp_pd.GetPoint(point_index, p)
+                    tmp = p[2]
+                    if tmp > small:
+                        small = tmp
+                        max_region_z[region_index] = tmp
+                        max_index[region_index] = point_index
 
         # sort regions based on maximum z in them
-        regions_index_sorted = np.argsort(max_z)
+        regions_index_sorted = np.argsort(max_region_z)
 
         for index in regions_index_sorted:
-            sorted_conn = vtk.vtkConnectivityFilter()
-            sorted_conn.SetInputData(pdc)
-            sorted_conn.SetExtractionModeToSpecifiedRegions()
-            sorted_conn.AddSpecifiedRegion(index)
-            sorted_conn.Update()
-            sorted_pd = sorted_conn.GetPolyDataOutput()
+            sorted_pd = sub_pds[index]
+            if sorted_pd.GetNumberOfPoints > 1:
+                initial_point_id = initial_reorder(sorted_pd, args.along)
+                ordered_points_ids = reorder(sorted_pd, initial_point_id)
+                write_ordered_csv(sorted_pd, numCurves, value,
+                                  ordered_points_ids, args.input, args.along)
 
-            initial_point_id = initial_reorder(pdc, args.along)
-            ordered_points_ids = reorder(sorted_pd, initial_point_id)
-            write_ordered_csv(sorted_pd, numCurves, value,
-                              ordered_points_ids, args.input, args.along)
-
-        numCurves += 1
+    numCurves += 1
 
     # adding to values array for saving all contours together in one file
     values.append(value)
-
 
 con = vtk.vtkContourFilter()
 con.SetInputData(pd)
