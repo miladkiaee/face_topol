@@ -204,7 +204,7 @@ while numCurves < maxNumCurves and \
     # first lets try to find the start and end of the curve in case it is open
     # we need to be consistent with the side of the curve we start with
     # here probably the one with lesser x would be a good choice
-    # if curve is in zy plane we wanna choose one with lesser z
+    # if curve is in zy plane we wanna choose one with lesser z and so on
     prevId = -1
     closed = True
 
