@@ -2,14 +2,14 @@ import vtk
 import math
 import csv
 
-numberOfLevels = 168
+numberOfLevels = 96
 numberOfGeo = 200
 
 origin_subject = "ADULT01"
 destination_subject = "CC077"
 
 d = "/home/milad/face_topol/geodesic/"
-d2 = "/home/milad/face_topol/polys/aligned_z/"
+d2 = "/home/milad/face_topol/polys/aligned_x/"
 
 d2_ws_1 = d2 + origin_subject + "Aligned.ply-ws/"
 d2_ws_2 = d2 + destination_subject + "Aligned.ply-ws/"
@@ -22,6 +22,8 @@ relMinsY_1 = []
 relMaxsY_1 = []
 relMinsZ_1 = []
 relMaxsZ_1 = []
+XofMinZ_1 = []
+YofMinZ_1 = []
 
 centersX_2 = []
 centersZ_2 = []
@@ -31,6 +33,8 @@ relMinsY_2 = []
 relMaxsY_2 = []
 relMinsZ_2 = []
 relMaxsZ_2 = []
+XofMinZ_2 = []
+YofMinZ_2 = []
 
 with open(d2_ws_1 + "levels.txt") as csv_file:
     csv_reader = csv.reader(csv_file, delimiter=',')
@@ -45,6 +49,8 @@ with open(d2_ws_1 + "levels.txt") as csv_file:
         relMaxsY_1.append(float(row[7]))
         relMinsZ_1.append(float(row[8]))
         relMaxsZ_1.append(float(row[9]))
+        XofMinZ_1.append(float(row[10]))
+        YofMinZ_1.append(float(row[11]))
 
 with open(d2_ws_2 + "levels.txt") as csv_file:
     csv_reader = csv.reader(csv_file, delimiter=',')
@@ -59,6 +65,8 @@ with open(d2_ws_2 + "levels.txt") as csv_file:
         relMaxsY_2.append(float(row[7]))
         relMinsZ_2.append(float(row[8]))
         relMaxsZ_2.append(float(row[9]))
+        XofMinZ_2.append(float(row[10]))
+        YofMinZ_2.append(float(row[11]))
 
 for i in range(numberOfGeo):
     for j in range(numberOfLevels):
@@ -78,35 +86,38 @@ for i in range(numberOfGeo):
 
         for k in range(table.GetNumberOfRows()):
             # print("x: ", table.GetValue(, 0), " y: ", table.GetValue(i, 1), "z: ", table.GetValue(i, 2))
-            p = [(table.GetValue(k, 0)).ToDouble(), (table.GetValue(k, 1)).ToDouble(), (table.GetValue(k, 2)).ToDouble()]
+            p = [(table.GetValue(k, 0)).ToDouble(),
+                 (table.GetValue(k, 1)).ToDouble(),
+                 (table.GetValue(k, 2)).ToDouble()]
             points.InsertNextPoint(p[0], p[1], p[2])
 
         # check distance between consequent points
         # if more than certain amount populate with more points
-        nop = points.GetNumberOfPoints()
-        p0 = [0, 0, 0]
-        p1 = [0, 0, 0]
-        newDist = 0.5
-        extra = 1
-        big = 100
 
-        if nop > 100:
-            for k in range(nop - 1):
-                points.GetPoint(k, p0)
-                points.GetPoint(k+1, p1)
-                if p0[1] != p1[1]:
-                    print("the points should have same y coordinate")
-                    break
-                dist = math.sqrt((p0[0]-p1[0])**2 + (p0[2]-p1[2])**2)
+        #        nop = points.GetNumberOfPoints()
+        # p0 = [0, 0, 0]
+        # p1 = [0, 0, 0]
+        # newDist = 0.5
+        # extra = 1
+        # big = 100
 
-                if (dist > newDist) and (dist < big):
-                    vec = [p1[0] - p0[0], 0, p1[2] - p0[2]]
-                    counts = dist / newDist
+        # if nop > 100:
+        #     for k in range(nop - 1):
+        #         points.GetPoint(k, p0)
+        #         points.GetPoint(k+1, p1)
+        #        if p0[1] != p1[1]:
+        #            print("the points should have same y coordinate")
+        #           break
+        #      dist = math.sqrt((p0[0]-p1[0])**2 + (p0[2]-p1[2])**2)
 
-                    for q in range(1, int(counts)):
-                        ptemp = [p0[0] + q*newDist*vec[0]/dist, p0[1], p0[2] + q*newDist*vec[2]/dist]
-                        points.InsertPoint(extra + nop - 1, ptemp[0], p0[1], ptemp[2])
-                        extra = extra + 1
+        #    if (dist > newDist) and (dist < big):
+        #       vec = [p1[0] - p0[0], 0, p1[2] - p0[2]]
+        #      counts = dist / newDist
+
+        #    for q in range(1, int(counts)):
+        #      ptemp = [p0[0] + q*newDist*vec[0]/dist, p0[1], p0[2] + q*newDist*vec[2]/dist]
+        #      points.InsertPoint(extra + nop - 1, ptemp[0], p0[1], ptemp[2])
+        #     extra = extra + 1
 
         poly = vtk.vtkPolyData()
         poly.SetPoints(points)
@@ -128,9 +139,9 @@ for i in range(numberOfGeo):
         trans = vtk.vtkTransform()
         frac_1 = 1 - float(i)/float(numberOfGeo)
         frac_2 = float(i)/float(numberOfGeo)
-        trans.Translate(-x_min + frac_1*relMinsX_1[j] + frac_2*relMinsX_2[j],
+        trans.Translate(-x_min + YofMinZ_1[j],
                         0,
-                        -z_min + frac_1*relMinsY_1[j] + frac_2*relMinsY_2[j])
+                        -z_min + relMinsZ_1[j])
         transF = vtk.vtkTransformPolyDataFilter()
         transF.SetInputData(poly)
         transF.SetTransform(trans)

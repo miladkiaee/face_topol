@@ -22,7 +22,7 @@ def write_ordered_csv(poly, n_curves,
         # we are doing the x y z to y z x move for the geodesic software preferences
         # relative to the initial coordinates of the point in the curve
         if option == "x":
-            f.write('%f, %f, %f\n' % (p[1], p[0], p[2]))
+            f.write('%f, %f, %f\n' % (p[1], 0, p[2]))
         if option == "y":
             f.write('%f, %f, %f\n' % (p[0], p[1], p[2]))
         if option == "z":

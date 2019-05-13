@@ -20,10 +20,10 @@ def reduce_it(poly, loc):
     deci.Update()
 
     # writing the contours output
-    writer = vtk.vtkPolyDataWriter()
-    writer.SetFileName(loc + "decimated.ply")
-    writer.SetInputData(deci.GetOutput())
-    writer.Update()
-    writer.Write()
+    # writer = vtk.vtkPolyDataWriter()
+    # writer.SetFileName(loc + "decimated.ply")
+    # writer.SetInputData(deci.GetOutput())
+    # writer.Update()
+    # writer.Write()
 
     return deci.GetOutput()

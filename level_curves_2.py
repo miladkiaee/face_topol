@@ -137,6 +137,8 @@ MaxXs = []
 MinYs = []
 MaxYs = []
 MinZs = []
+XofMinZs = []
+YofMinZs = []
 MaxZs = []
 
 numCurves = 0
@@ -159,13 +161,16 @@ while numCurves < maxNumCurves and \
     con.Update()
 
     pdc = con.GetOutput()
-    [bc, center] = information(pdc)
+    [bc, center, xof_small_z,
+     yof_small_z, small_z] = information(pdc)
 
     MinXs.append(bc[0])
     MaxXs.append(bc[1])
     MinYs.append(bc[2])
     MaxYs.append(bc[3])
-    MinZs.append(bc[4])
+    MinZs.append(small_z)
+    XofMinZs.append(xof_small_z)
+    YofMinZs.append(yof_small_z)
     MaxZs.append(bc[5])
     centersX.append(center[0])
     centersY.append(center[1])
@@ -270,15 +275,15 @@ for i in range(len(values)):
         rz = 0
         rzz = 0
     else:
-        rx = MinXs[i]
-        rxx = MaxXs[i]
-        ry = MinYs[i]
-        ryy = MaxYs[i]
-        rz = MinZs[i]
-        rzz = MaxZs[i]
+        rx = MinXs[i]  # - MinXs[0]
+        rxx = MaxXs[i]  # - MaxXs[0]
+        ry = MinYs[i]  # - MinYs[0]
+        ryy = MaxYs[i]  # - MaxYs[0]
+        rz = MinZs[i]  # - MinZs[0]
+        rzz = MaxZs[i]  # - MaxZs[0]
 
-    levelFile.write('%f, %f, %f, %f, %f, %f, %f, %f, %f, %f\n'
+    levelFile.write('%f, %f, %f, %f, %f, %f, %f, %f, %f, %f, %f, %f\n'
                     % (values[i], centersX[i], centersY[i], centersZ[i],
-                       rx, rxx, ry, ryy, rz, rzz))
+                       rx, rxx, ry, ryy, rz, rzz, XofMinZs[i], YofMinZs[i]))
 
 levelFile.close()
