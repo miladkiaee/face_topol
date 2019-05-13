@@ -24,6 +24,7 @@ def initial_reorder(poly, option):
         xx = big
         poly.GetPointCells(point_id1, cell_ids)
         nc = cell_ids.GetNumberOfIds()
+
         if nc == 1:
             # print("curve is open at point", pointId1)
             ipid = point_id1
@@ -38,8 +39,8 @@ def initial_reorder(poly, option):
                 big = xx
                 point_id = point_id1
         if (nc == 0) or (nc > 2):
-            print("number of cellIds:", nc)
-            sys.exit("error with manifold")
+            print("number of cells for ", point_id1, " is ", nc)
+            sys.exit("probably there is branching")
 
     if closed:
         # print("curve is closed")
@@ -70,14 +71,10 @@ def initial_reorder(poly, option):
 
 def reorder(poly, ipid):
 
-    num_cells = poly.GetNumberOfCells()
     opid = vtk.vtkIdList()
     opid.InsertNextId(ipid)
     cell_ids = vtk.vtkIdList()
-
-    # make sure points are the points of the cell
-    for i in range(num_cells):
-        poly.GetCellPoints()
+    num_points = poly.GetNumberOfPoints()
 
     for i in range(num_points - 2):
 
@@ -90,12 +87,16 @@ def reorder(poly, ipid):
             # check if this cell is the correct one by checking its points
             point_id1 = poly.GetCell(cell_id).GetPointId(0)
             point_id2 = poly.GetCell(cell_id).GetPointId(1)
-            if opid.IsId(point_id1) != -1 and opid.IsId(point_id2) != -1:
+
+            if opid.IsId(point_id1) != -1 and \
+                    opid.IsId(point_id2) != -1:
+
                 cell_id = cell_ids.GetId(1)
                 point_id1 = poly.GetCell(cell_id).GetPointId(0)
                 point_id2 = poly.GetCell(cell_id).GetPointId(1)
 
-                if opid.IsId(point_id1) != -1 and opid.IsId(point_id2) != -1:
+                if opid.IsId(point_id1) != -1 \
+                        and opid.IsId(point_id2) != -1:
                     break
             else:
                 point_id1 = poly.GetCell(cell_id).GetPointId(0)

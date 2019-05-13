@@ -2,7 +2,8 @@ import vtk
 import os
 
 
-def write_ordered_csv(poly, n_curves, value, ids, path, option):
+def write_ordered_csv(poly, n_curves,
+                      value, ids, path, option):
 
     name = str(n_curves) + ".csv"
     if os.path.exists(name):

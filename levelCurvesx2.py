@@ -18,6 +18,7 @@ from write_ordered_csv import write_ordered_csv
 parser = ArgumentParser()
 parser.add_argument("-i", "--input", default="", help="input polydata file name")
 parser.add_argument("-a", "--along", default="", help="the axis of level curves")
+parser.add_argument("-o", "--output", default="", help="output path for writing")
 
 args = parser.parse_args()
 
@@ -40,9 +41,9 @@ pd = trif.GetOutput()
 pd = reduce_it(pd, args.input)
 
 # smooth
-# pd = smooth(pd, feature_angle=160,
-#             edge_angle=160, relax=0.2, num_iter=20,
-#            file_path=args.input)
+pd = smooth(pd, feature_angle=160,
+            edge_angle=160, relax=0.4, num_iter=20,
+            file_path=args.input)
 
 # pd = cleaner(pd, toler=0.01)
 
@@ -174,7 +175,8 @@ while numCurves < maxNumCurves and \
     numCells = pdc.GetNumberOfCells()
 
     # some checks
-    if value > maxx or numCells < minNumCells and value > mid:
+    if value > maxx or \
+            numCells < minNumCells and value > mid:
         break
 
     # contour can contain multiple non-connected curves
@@ -187,11 +189,14 @@ while numCurves < maxNumCurves and \
     ordered_cells_ids = vtk.vtkIdList()
 
     # array of sub polydata included in an individual contour
+    if numRegions == 0:
+        print("no region found")
+
     if numRegions == 1:
         initial_point_id = initial_reorder(pdc, args.along)
         ordered_points_ids = reorder(pdc, initial_point_id)
         write_ordered_csv(pdc, numCurves, value,
-                          ordered_points_ids, args.input, args.along)
+                          ordered_points_ids, args.output, args.along)
 
     if numRegions > 1:
         sub_pds = []
@@ -205,6 +210,10 @@ while numCurves < maxNumCurves and \
             tmp_conn.AddSpecifiedRegion(region_index)
             tmp_conn.Update()
             tmp_pd = tmp_conn.GetPolyDataOutput()
+            c = vtk.vtkCleanPolyData()
+            c.SetInputData(tmp_pd)
+            c.Update()
+            tmp_pd = c.GetOutput()
             sub_pds.append(tmp_pd)
             tmp_num_points = tmp_pd.GetNumberOfPoints()
             if tmp_num_points > 1:
@@ -223,11 +232,11 @@ while numCurves < maxNumCurves and \
 
         for index in regions_index_sorted:
             sorted_pd = sub_pds[index]
-            if sorted_pd.GetNumberOfPoints > 1:
+            if sorted_pd.GetNumberOfPoints() > 1:
                 initial_point_id = initial_reorder(sorted_pd, args.along)
                 ordered_points_ids = reorder(sorted_pd, initial_point_id)
                 write_ordered_csv(sorted_pd, numCurves, value,
-                                  ordered_points_ids, args.input, args.along)
+                                  ordered_points_ids, args.output, args.along)
 
     numCurves += 1
 
@@ -244,7 +253,7 @@ con.Update()
 
 # writing the contours output
 writer = vtk.vtkPolyDataWriter()
-writer.SetFileName(args.input + "contours.ply")
+writer.SetFileName(args.output + "contours.ply")
 writer.SetInputData(con.GetOutput())
 writer.Update()
 writer.Write()
