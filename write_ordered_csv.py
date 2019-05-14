@@ -19,8 +19,10 @@ def write_ordered_csv(poly, n_curves,
         p = [0, 0, 0]
         poly.GetPoint(a, p)
 
-        # we are doing the x y z to y z x move for the geodesic software preferences
-        # relative to the initial coordinates of the point in the curve
+        # we are doing the x y z to y z x move for
+        # the geodesic software preferences
+        # relative to the initial coordinates of
+        # the point in the curve
         if option == "x":
             f.write('%f, %f, %f\n' % (p[1], 0, p[2]))
         if option == "y":

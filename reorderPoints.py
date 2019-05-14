@@ -10,36 +10,37 @@ def initial_reorder(poly, option):
     ipid = -1
     cell_ids = vtk.vtkIdList()
 
+    big = 1000
+
     for i in range(num_cells):
         # for each cell get point id of the two sides
-        point_id1 = poly.GetCell(i).GetPointId(0)
+        point_id = poly.GetCell(i).GetPointId(0)
 
-        if point_id1 == prev_id:
-            point_id1 = poly.GetCell(i).GetPointId(1)
+        if point_id == prev_id:
+            point_id = poly.GetCell(i).GetPointId(1)
 
-        prev_id = point_id1
+        prev_id = point_id
 
         # cell ids for firs point of the cell
-        big = 1000
         xx = big
-        poly.GetPointCells(point_id1, cell_ids)
+        poly.GetPointCells(point_id, cell_ids)
         nc = cell_ids.GetNumberOfIds()
 
         if nc == 1:
             # print("curve is open at point", pointId1)
-            ipid = point_id1
+            ipid = point_id
             closed = False
             p = [0, 0, 0]
-            poly.GetPoint(point_id1, p)
+            poly.GetPoint(point_id, p)
             if option == "z" or option == "y":
                 xx = p[0]
             if option == "x":
                 xx = p[2]
             if xx < big:
                 big = xx
-                point_id = point_id1
+                ipid = point_id
         if (nc == 0) or (nc > 2):
-            print("number of cells for ", point_id1, " is ", nc)
+            print("number of cells for ", point_id, " is ", nc)
             sys.exit("probably there is branching")
 
     if closed:

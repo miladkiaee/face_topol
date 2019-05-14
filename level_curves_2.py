@@ -14,6 +14,7 @@ from reorderPoints import initial_reorder
 from reorderPoints import reorder
 from geometric_information import information
 from write_ordered_csv import write_ordered_csv
+from write_ordered_csv_check import write_ordered_csv_check
 
 parser = ArgumentParser()
 parser.add_argument("-i", "--input", default="", help="input polydata file name")
@@ -202,6 +203,9 @@ while numCurves < maxNumCurves and \
         ordered_points_ids = reorder(pdc, initial_point_id)
         write_ordered_csv(pdc, numCurves, value,
                           ordered_points_ids, args.output, args.along)
+        write_ordered_csv_check(pdc, numCurves, value,
+                          ordered_points_ids, args.output, args.along)
+
 
     if numRegions > 1:
         sub_pds = []
@@ -241,6 +245,8 @@ while numCurves < maxNumCurves and \
                 initial_point_id = initial_reorder(sorted_pd, args.along)
                 ordered_points_ids = reorder(sorted_pd, initial_point_id)
                 write_ordered_csv(sorted_pd, numCurves, value,
+                                  ordered_points_ids, args.output, args.along)
+                write_ordered_csv_check(sorted_pd, numCurves, value,
                                   ordered_points_ids, args.output, args.along)
 
     numCurves += 1
