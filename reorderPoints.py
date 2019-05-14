@@ -4,112 +4,83 @@ import sys
 
 def initial_reorder(poly, option):
 
-    num_cells = poly.GetNumberOfCells()
-    closed = True
-    prev_id = -1
-    ipid = -1
+    num_points = poly.GetNumberOfPoints()
+    ip_id = -1
     cell_ids = vtk.vtkIdList()
+    small = 1000
+    tmp = 0
 
-    big = 1000
+    for i in range(num_points):
 
-    for i in range(num_cells):
-        # for each cell get point id of the two sides
-        point_id = poly.GetCell(i).GetPointId(0)
-
-        if point_id == prev_id:
-            point_id = poly.GetCell(i).GetPointId(1)
-
-        prev_id = point_id
-
-        # cell ids for firs point of the cell
-        xx = big
-        poly.GetPointCells(point_id, cell_ids)
+        poly.GetPointCells(i, cell_ids)
         nc = cell_ids.GetNumberOfIds()
+        p = [0, 0, 0]
+        poly.GetPoint(i, p)
 
         if nc == 1:
-            # print("curve is open at point", pointId1)
-            ipid = point_id
-            closed = False
-            p = [0, 0, 0]
-            poly.GetPoint(point_id, p)
             if option == "z" or option == "y":
-                xx = p[0]
+                tmp = p[0]
             if option == "x":
-                xx = p[2]
-            if xx < big:
-                big = xx
-                ipid = point_id
+                tmp = p[2]
+            if tmp < small:
+                small = tmp
+                ip_id = i
+
         if (nc == 0) or (nc > 2):
-            print("number of cells for ", point_id, " is ", nc)
+            print("number of cells for ", i, " is ", nc)
             sys.exit("probably there is branching")
 
-    if closed:
-        # print("curve is closed")
-        # for closed curve we want to start at point with smallest x??
-        # if in zy plane we want smallest z
-        point_id = 0
-        p = [0, 0, 0]
-        big = 1000
-        np = poly.GetNumberOfPoints()
-        zz = big
-
-        for i in range(np):
-            poly.GetPoint(i, p)
-
-            if option == "z" or option == "y":
-                zz = p[0]
-            if option == "x":
-                zz = p[2]
-
-            if zz < big:
-                big = zz
-                point_id = i
-
-        ipid = point_id
-
-    return ipid
+    return ip_id
 
 
-def reorder(poly, ipid):
+def reorder(poly, ip_id):
 
-    opid = vtk.vtkIdList()
-    opid.InsertNextId(ipid)
-    cell_ids = vtk.vtkIdList()
+    ordered_p_ids = vtk.vtkIdList()
+    ordered_p_ids.InsertNextId(ip_id)
+    prev_nei_cell_ids = vtk.vtkIdList()
     num_points = poly.GetNumberOfPoints()
 
     for i in range(num_points - 2):
+        prev_point_id = ordered_p_ids.GetId(i)
+        poly.GetPointCells(prev_point_id, prev_nei_cell_ids)
+        nnc = prev_nei_cell_ids.GetNumberOfIds()
 
-        next_point_id = opid.GetId(i)
-        poly.GetPointCells(next_point_id, cell_ids)
+        if nnc == 1:
+            cell_id = prev_nei_cell_ids.GetId(0)
+            p_id1 = poly.GetCell(cell_id).GetPointId(0)
+            p_id2 = poly.GetCell(cell_id).GetPointId(1)
 
-        if cell_ids.GetNumberOfIds() > 0:
+            if ordered_p_ids.IsId(p_id1) == -1:
+                ordered_p_ids.InsertNextId(p_id1)
+            elif ordered_p_ids.IsId(p_id2) == -1:
+                ordered_p_ids.InsertNextId(p_id2)
+            if ordered_p_ids.IsId(p_id1) == -1 and ordered_p_ids.IsId(p_id2) == -1:
+                sys.exit("weird problem!")
 
-            cell_id = cell_ids.GetId(0)
-            # check if this cell is the correct one by checking its points
-            point_id1 = poly.GetCell(cell_id).GetPointId(0)
-            point_id2 = poly.GetCell(cell_id).GetPointId(1)
+        if nnc > 1:
+            cell_id = prev_nei_cell_ids.GetId(0)
+            p_id1 = poly.GetCell(cell_id).GetPointId(0)
+            p_id2 = poly.GetCell(cell_id).GetPointId(1)
 
-            if opid.IsId(point_id1) != -1 and \
-                    opid.IsId(point_id2) != -1:
-
-                cell_id = cell_ids.GetId(1)
-                point_id1 = poly.GetCell(cell_id).GetPointId(0)
-                point_id2 = poly.GetCell(cell_id).GetPointId(1)
-
-                if opid.IsId(point_id1) != -1 \
-                        and opid.IsId(point_id2) != -1:
+            if ordered_p_ids.IsId(p_id1) != -1 and ordered_p_ids.IsId(p_id2) != -1:
+                cell_id = prev_nei_cell_ids.GetId(1)
+                p_id1 = poly.GetCell(cell_id).GetPointId(0)
+                p_id2 = poly.GetCell(cell_id).GetPointId(1)
+                if ordered_p_ids.IsId(p_id1) != -1 and ordered_p_ids.IsId(p_id2) != -1:
                     break
             else:
-                point_id1 = poly.GetCell(cell_id).GetPointId(0)
-                point_id2 = poly.GetCell(cell_id).GetPointId(1)
+                p_id1 = poly.GetCell(cell_id).GetPointId(0)
+                p_id2 = poly.GetCell(cell_id).GetPointId(1)
 
-            if opid.IsId(point_id1) != -1:
-                point_id = point_id2
-                if opid.IsId(point_id2) != -1:
+            if ordered_p_ids.IsId(p_id1) != -1:
+                if ordered_p_ids.IsId(p_id2) != -1:
                     print("this is not right! second check not passed!")
                 else:
-                    opid.InsertNextId(point_id2)
+                    ordered_p_ids.InsertNextId(p_id2)
             else:
-                opid.InsertNextId(point_id1)
+                ordered_p_ids.InsertNextId(p_id1)
 
-    return opid
+        if nnc > 2:
+            sys.exit("problem with branching!")
+
+    return ordered_p_ids

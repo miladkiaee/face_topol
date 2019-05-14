@@ -12,7 +12,6 @@ def write_ordered_csv_check(poly, n_curves,
         append_write = 'w'
 
     f = open(name, append_write)
-    print("curve ", path, " level ", str(value))
 
     for i in range(0, ids.GetNumberOfIds()):
         a = ids.GetId(i)

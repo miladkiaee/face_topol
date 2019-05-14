@@ -152,6 +152,7 @@ while numCurves < maxNumCurves and \
         value < (maxx - 2*increment):
 
     value = value + increment
+    print("trying level: ", value)
 
     # extract contour
     con = vtk.vtkContourFilter()
@@ -199,13 +200,14 @@ while numCurves < maxNumCurves and \
         print("no region found")
 
     if numRegions == 1:
+
         initial_point_id = initial_reorder(pdc, args.along)
+        print("init p_id: ", initial_point_id, " num_reg: ", numRegions)
         ordered_points_ids = reorder(pdc, initial_point_id)
         write_ordered_csv(pdc, numCurves, value,
                           ordered_points_ids, args.output, args.along)
         write_ordered_csv_check(pdc, numCurves, value,
-                          ordered_points_ids, args.output, args.along)
-
+                                ordered_points_ids, args.output, args.along)
 
     if numRegions > 1:
         sub_pds = []
@@ -243,11 +245,12 @@ while numCurves < maxNumCurves and \
             sorted_pd = sub_pds[index]
             if sorted_pd.GetNumberOfPoints() > 1:
                 initial_point_id = initial_reorder(sorted_pd, args.along)
+                print("init p_id: ", initial_point_id, " num_reg: ", numRegions)
                 ordered_points_ids = reorder(sorted_pd, initial_point_id)
                 write_ordered_csv(sorted_pd, numCurves, value,
                                   ordered_points_ids, args.output, args.along)
                 write_ordered_csv_check(sorted_pd, numCurves, value,
-                                  ordered_points_ids, args.output, args.along)
+                                        ordered_points_ids, args.output, args.along)
 
     numCurves += 1
 

@@ -1,6 +1,7 @@
 import vtk
 import math
 import csv
+import numpy as np
 
 numberOfLevels = 96
 numberOfGeo = 200
@@ -67,6 +68,18 @@ with open(d2_ws_2 + "levels.txt") as csv_file:
         relMaxsZ_2.append(float(row[9]))
         XofMinZ_2.append(float(row[10]))
         YofMinZ_2.append(float(row[11]))
+
+relMinsZ_1 = np.array(relMinsZ_1)
+YofMinZ_1 = np.array(YofMinZ_1)
+
+relMinsZ_2 = np.array(relMinsZ_2)
+YofMinZ_2 = np.array(YofMinZ_2)
+
+np.interp(relMinsZ_1, (relMinsZ_1.min(), relMinsZ_1.max()), (0, 1))
+np.interp(YofMinZ_1, (YofMinZ_1.min(), YofMinZ_1.max()), (0, 1))
+
+np.interp(relMinsZ_2, (relMinsZ_2.min(), relMinsZ_2.max()), (0, 1))
+np.interp(YofMinZ_2, (YofMinZ_2.min(), YofMinZ_2.max()), (0, 1))
 
 for i in range(numberOfGeo):
     for j in range(numberOfLevels):
@@ -139,9 +152,9 @@ for i in range(numberOfGeo):
         trans = vtk.vtkTransform()
         frac_1 = 1 - float(i)/float(numberOfGeo)
         frac_2 = float(i)/float(numberOfGeo)
-        trans.Translate(-x_min + YofMinZ_1[j],
+        trans.Translate(-x_min + frac_1*YofMinZ_1[j] + frac_2*YofMinZ_2[j],
                         0,
-                        -z_min + relMinsZ_1[j])
+                        -z_min + frac_1*relMinsZ_1[j] + frac_2*relMinsZ_2[j])
         transF = vtk.vtkTransformPolyDataFilter()
         transF.SetInputData(poly)
         transF.SetTransform(trans)

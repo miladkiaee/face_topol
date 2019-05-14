@@ -5,7 +5,7 @@ def separate(poly, loc):
     bo = vtk.vtkBooleanOperationPolyDataFilter()
     # operation = "union"
     # operation = "intersection"
-    #operation = difference
+    # operation = difference
     non_man = vtk.vtkFeatureEdges()
     non_man.SetInputData(poly)
     non_man.BoundaryEdgesOff()
