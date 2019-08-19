@@ -1,21 +1,18 @@
-# this code tries to align the coordinate system to one define by some principal analysis
+# this code tries to align the coordinate system to one define by some principal analyses
 # and to save some level curve points set files
 # Kitware's visualization toolkit
 import vtk
-import numpy as np
-import sys
 
 from argparse import ArgumentParser
+
 from smoothFace import smooth
-from cleanFace import cleaner
 from reduceTriangles import reduce_it
-from reorderPoints import initial_reorder
-from reorderPoints import reorder
 from geometric_information import information
-from write_ordered_csv import write_ordered_csv
-from write_ordered_csv_check import write_ordered_csv_check
+from write_ordered_csv import write_ordered
+from write_ordered_csv_check import write_ordered_check
 from resample_points import resample_points
 
+print('----------')
 parser = ArgumentParser()
 parser.add_argument("-i", "--input", default="", help="input polydata file name")
 parser.add_argument("-a", "--along", default="", help="the axis of level curves")
@@ -112,7 +109,7 @@ if args.along == "x":
     minn = x_min
 
 if args.along == "y":
-    maxNumCurves = 250
+    maxNumCurves = 100
     elong = 100
     delta = abs(y_max - y_min)/10000
     increment = abs(y_max - y_min)/100
@@ -121,7 +118,7 @@ if args.along == "y":
     minn = y_min
 
 if args.along == "z":
-    maxNumCurves = 400
+    maxNumCurves = 100
     elong = 400
     delta = abs(z_max - z_min)/10000
     increment = abs(z_max - z_min)/200
@@ -155,7 +152,8 @@ while numCurves < maxNumCurves and \
         value < (minn + elong) and \
         value < (maxx - 2*increment):
 
-    value = value + increment
+    value += increment
+
     print("trying level: ", value)
 
     # extract contour
@@ -167,7 +165,7 @@ while numCurves < maxNumCurves and \
     con.Update()
 
     pdc = con.GetOutput()
-    pdc = resample_points(pdc)
+    # pdc = resample_points(pdc)
 
     [bc, center, xof_small_z, yof_small_z,
      small_z, xof_small_y, zof_small_y, small_y] = information(pdc)
@@ -186,7 +184,6 @@ while numCurves < maxNumCurves and \
     centersY.append(center[1])
     centersZ.append(center[2])
 
-    numPoints = pdc.GetNumberOfPoints()
     numCells = pdc.GetNumberOfCells()
 
     # some checks
@@ -200,72 +197,14 @@ while numCurves < maxNumCurves and \
     conn.Update()
     numRegions = conn.GetNumberOfExtractedRegions()
 
-    ordered_points_ids = vtk.vtkIdList()
-    ordered_cells_ids = vtk.vtkIdList()
-
     # array of sub polydata included in an individual contour
     if numRegions == 0:
         print("no region found")
 
-    if numRegions == 1:
-        [yyy, zzz, initial_point_id] = initial_reorder(pdc, args.along)
-        MinZsStart.append(zzz)
-        YofMinZsStart.append(yyy)
-        print("init p_id: ", initial_point_id, " num_reg: ", numRegions)
-        ordered_points_ids = reorder(pdc, initial_point_id)
-        write_ordered_csv(pdc, numCurves, value,
-                          ordered_points_ids, args.output, args.along)
-        write_ordered_csv_check(pdc, numCurves, value,
-                                ordered_points_ids, args.output, args.along)
-
-    if numRegions > 1:
-        sub_pds = []
-        max_index = np.zeros(numRegions)
-        max_region_z = np.zeros(numRegions)
-        for region_index in range(numRegions):
-            # finding max z of each region
-            tmp_conn = vtk.vtkConnectivityFilter()
-            tmp_conn.SetInputData(pdc)
-            tmp_conn.SetExtractionModeToSpecifiedRegions()
-            tmp_conn.AddSpecifiedRegion(region_index)
-            tmp_conn.Update()
-            tmp_pd = tmp_conn.GetPolyDataOutput()
-            c = vtk.vtkCleanPolyData()
-            c.SetInputData(tmp_pd)
-            c.Update()
-            tmp_pd = c.GetOutput()
-            # tmp_pd = resample_points(tmp_pd)
-            sub_pds.append(tmp_pd)
-            tmp_num_points = tmp_pd.GetNumberOfPoints()
-            if tmp_num_points > 1:
-                p = [0, 0, 0]
-                small = -1000
-                for point_index in range(tmp_num_points):
-                    tmp_pd.GetPoint(point_index, p)
-                    tmp = p[2]
-                    if tmp > small:
-                        small = tmp
-                        max_region_z[region_index] = tmp
-                        max_index[region_index] = point_index
-
-        # sort regions based on maximum z in them
-        regions_index_sorted = np.argsort(max_region_z)
-
-        bottom_region = True
-        for index in regions_index_sorted:
-            sorted_pd = sub_pds[index]
-            if sorted_pd.GetNumberOfPoints() > 1:
-                [yyy, zzz, initial_point_id] = initial_reorder(sorted_pd, args.along)
-                if bottom_region:
-                    MinZsStart.append(zzz)
-                    YofMinZsStart.append(yyy)
-                    bottom_region = False
-                print("init p_id: ", initial_point_id, " num_reg: ", numRegions)
-                ordered_points_ids = reorder(sorted_pd, initial_point_id)
-                write_ordered_csv(sorted_pd, numCurves, value,
-                                  ordered_points_ids, args.output, args.along)
-                write_ordered_csv_check(sorted_pd, numCurves, value,
-                                        ordered_points_ids, args.output, args.along)
+    if not numRegions == 0:
+        pdc = resample_points(pdc)  # expected to order points too
+        write_ordered(pdc, numCurves, args.output, value)
+        write_ordered_check(pdc, numCurves, args.output, value)
 
     numCurves += 1
 
@@ -298,19 +237,14 @@ for i in range(len(values)):
         ryy = 0
         rz = 0
         rzz = 0
-    else:
-        rx = MinXs[i]  # - MinXs[0]
-        rxx = MaxXs[i]  # - MaxXs[0]
-        ry = MinYs[i]  # - MinYs[0]
-        ryy = MaxYs[i]  # - MaxYs[0]
-        rz = MinZs[i]  # - MinZs[0]
-        rzz = MaxZs[i]  # - MaxZs[0]
+    # else:
+        # rx = MinXs[i]  # - MinXs[0]
+        # rxx = MaxXs[i]  # - MaxXs[0]
+        # ry = MinYs[i]  # - MinYs[0]
+        # ryy = MaxYs[i]  # - MaxYs[0]
+        # rz = MinZs[i]  # - MinZs[0]
+        # rzz = MaxZs[i]  # - MaxZs[0]
 
-    levelFile.write('%f, %f, %f, %f, %f, %f, %f, %f, '
-                    '%f, %f, %f, %f, %f, %f, %f, %f\n' %
-                    (values[i], centersX[i], centersY[i],
-                     centersZ[i], rx, rxx, ry, ryy, rz, rzz,
-                     XofMinZs[i], YofMinZs[i], MinZsStart[i],
-                     YofMinZsStart[i], XofMinYs[i], ZofMinYs[i]))
+    levelFile.write('%f\n' % (values[i]))
 
 levelFile.close()

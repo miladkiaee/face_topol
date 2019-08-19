@@ -28,29 +28,29 @@ pd2 = reader2.GetOutput()
 normals1 = vtk.vtkPolyDataNormals()
 normals1.SetInputData(pd1)
 normals1.Update()
-normalspd1 = normals.GetOutput()
+# normalspd1 = normals.GetOutput()
 
 normals2 = vtk.vtkPolyDataNormals()
 normals2.SetInputData(pd2)
 normals2.Update()
 normalspd2 = normals2.GetOutput()
 
-n = normalspd1.GetNumberOfPoints()
+# n = normalspd1.GetNumberOfPoints()
 
 arrayIndex = 1
 
-for tupleIdx in range(n):
-    t = pd.GetPointData().GetArray(arrayIndex).GetTuple(tupleIdx)
-    t0 = t->GetComponent(tupleIdx, 0)
-    t1 = t->GetComponent(tupleIdx, 1)
-    t2 = t->GetComponent(tupleIdx, 2)
+for tupleIdx in range(10):
+    # t = pd.GetPointData().GetArray(arrayIndex).GetTuple(tupleIdx)
+    # t0 = t->GetComponent(tupleIdx, 0)
+    # t1 = t->GetComponent(tupleIdx, 1)
+    # t2 = t->GetComponent(tupleIdx, 2)
     mag = math.sqrt(t0*t0 + t1*t1 + t2*t2)
     t0 = t0/mag
     t1 = t1/mag
     t2 = t2/mag
-    pd.GetPointData().GetArray(arrayIndex).SetComponent(tupleIdx, 0, t0)
-    pd.GetPointData().GetArray(arrayIndex).SetComponent(tupleIdx, 1, t1)
-    pd.GetPointData().GetArray(arrayIndex).SetComponent(tupleIdx, 2, t2)
+    # pd.GetPointData().GetArray(arrayIndex).SetComponent(tupleIdx, 0, t0)
+    # pd.GetPointData().GetArray(arrayIndex).SetComponent(tupleIdx, 1, t1)
+    # pd.GetPointData().GetArray(arrayIndex).SetComponent(tupleIdx, 2, t2)
 
     
 

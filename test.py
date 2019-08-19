@@ -29,9 +29,9 @@ for citer in range(1, cn+1):
     uct = float(citer)*ct/float(cn)
     lct = -1.0*uct
 
-    print "curvature thresh: "
-    print uct
-    print lct
+    print("curvature thresh: ")
+    print(uct)
+    print(lct)
 
     numPoints = pd.GetNumberOfPoints()
     

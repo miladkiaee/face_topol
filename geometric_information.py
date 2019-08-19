@@ -10,6 +10,11 @@ def information(poly):
     small_z = 1000
     xof_small_z = 1000
     yof_small_z = 1000
+
+    small_y = 1000
+    xof_small_y = 1000
+    zof_small_y = 1000
+
     for point_index in range(num_points):
         poly.GetPoint(point_index, p)
         tmp = p[2]
@@ -17,6 +22,14 @@ def information(poly):
             small_z = tmp
             xof_small_z = p[0]
             yof_small_z = p[1]
+
+    for point_index in range(num_points):
+        poly.GetPoint(point_index, p)
+        tmp = p[1]
+        if tmp < small_y:
+            small_y = tmp
+            xof_small_y = p[0]
+            zof_small_y = p[2]
 
     # in order to put center of mass as
     # origin we want to deduct the first one from the rest of the points
@@ -26,4 +39,6 @@ def information(poly):
     com.Update()
     center = com.GetCenter()
 
-    return [bc, center, xof_small_z, yof_small_z, small_z]
+    return [bc, center,
+            xof_small_z, yof_small_z, small_z,
+            xof_small_y, zof_small_y, small_y]

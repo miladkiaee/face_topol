@@ -9,6 +9,8 @@ def initial_reorder(poly, option):
     cell_ids = vtk.vtkIdList()
     small = 1000
     tmp = 0
+    y = 0
+    z = 0
 
     for i in range(num_points):
 
@@ -25,12 +27,14 @@ def initial_reorder(poly, option):
             if tmp < small:
                 small = tmp
                 ip_id = i
+                y = p[1]
+                z = p[2]
 
         if (nc == 0) or (nc > 2):
             print("number of cells for ", i, " is ", nc)
             sys.exit("probably there is branching")
 
-    return ip_id
+    return [y, z, ip_id]
 
 
 def reorder(poly, ip_id):

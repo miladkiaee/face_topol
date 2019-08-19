@@ -16,6 +16,7 @@ d2_ws_1 = d2 + origin_subject + "Aligned.ply-ws/"
 d2_ws_2 = d2 + destination_subject + "Aligned.ply-ws/"
 
 centersX_1 = []
+centersY_1 = []
 centersZ_1 = []
 relMinsX_1 = []
 relMaxsX_1 = []
@@ -25,9 +26,14 @@ relMinsZ_1 = []
 relMaxsZ_1 = []
 XofMinZ_1 = []
 YofMinZ_1 = []
+MinZStart_1 = []
+YofMinZStart_1 = []
+XofMinY_1 = []
+ZofMinY_1 = []
 
 centersX_2 = []
 centersZ_2 = []
+centersY_2 = []
 relMinsX_2 = []
 relMaxsX_2 = []
 relMinsY_2 = []
@@ -36,6 +42,10 @@ relMinsZ_2 = []
 relMaxsZ_2 = []
 XofMinZ_2 = []
 YofMinZ_2 = []
+MinZStart_2 = []
+YofMinZStart_2 = []
+XofMinY_2 = []
+ZofMinY_2 = []
 
 with open(d2_ws_1 + "levels.txt") as csv_file:
     csv_reader = csv.reader(csv_file, delimiter=',')
@@ -43,6 +53,7 @@ with open(d2_ws_1 + "levels.txt") as csv_file:
     for row in csv_reader:
         line_count += 1
         centersX_1.append(float(row[1]))
+        centersY_1.append(float(row[2]))
         centersZ_1.append(float(row[3]))
         relMinsX_1.append(float(row[4]))
         relMaxsX_1.append(float(row[5]))
@@ -52,6 +63,10 @@ with open(d2_ws_1 + "levels.txt") as csv_file:
         relMaxsZ_1.append(float(row[9]))
         XofMinZ_1.append(float(row[10]))
         YofMinZ_1.append(float(row[11]))
+        MinZStart_1.append(float(row[12]))
+        YofMinZStart_1.append(float(row[13]))
+        XofMinY_1.append(float(row[14]))
+        ZofMinY_1.append(float(row[15]))
 
 with open(d2_ws_2 + "levels.txt") as csv_file:
     csv_reader = csv.reader(csv_file, delimiter=',')
@@ -59,6 +74,7 @@ with open(d2_ws_2 + "levels.txt") as csv_file:
     for row in csv_reader:
         line_count += 1
         centersX_2.append(float(row[1]))
+        centersY_2.append(float(row[2]))
         centersZ_2.append(float(row[3]))
         relMinsX_2.append(float(row[4]))
         relMaxsX_2.append(float(row[5]))
@@ -68,18 +84,22 @@ with open(d2_ws_2 + "levels.txt") as csv_file:
         relMaxsZ_2.append(float(row[9]))
         XofMinZ_2.append(float(row[10]))
         YofMinZ_2.append(float(row[11]))
+        MinZStart_2.append(float(row[12]))
+        YofMinZStart_2.append(float(row[13]))
+        XofMinY_2.append(float(row[14]))
+        ZofMinY_2.append(float(row[15]))
 
-relMinsZ_1 = np.array(relMinsZ_1)
-YofMinZ_1 = np.array(YofMinZ_1)
+# relMinsZ_1 = np.array(relMinsZ_1)
+# YofMinZ_1 = np.array(YofMinZ_1)
 
-relMinsZ_2 = np.array(relMinsZ_2)
-YofMinZ_2 = np.array(YofMinZ_2)
+# relMinsZ_2 = np.array(relMinsZ_2)
+# YofMinZ_2 = np.array(YofMinZ_2)
 
-np.interp(relMinsZ_1, (relMinsZ_1.min(), relMinsZ_1.max()), (0, 1))
-np.interp(YofMinZ_1, (YofMinZ_1.min(), YofMinZ_1.max()), (0, 1))
+# np.interp(relMinsZ_1, (relMinsZ_1.min(), relMinsZ_1.max()), (0, 1))
+# np.interp(YofMinZ_1, (YofMinZ_1.min(), YofMinZ_1.max()), (0, 1))
 
-np.interp(relMinsZ_2, (relMinsZ_2.min(), relMinsZ_2.max()), (0, 1))
-np.interp(YofMinZ_2, (YofMinZ_2.min(), YofMinZ_2.max()), (0, 1))
+# np.interp(relMinsZ_2, (relMinsZ_2.min(), relMinsZ_2.max()), (0, 1))
+# np.interp(YofMinZ_2, (YofMinZ_2.min(), YofMinZ_2.max()), (0, 1))
 
 for i in range(numberOfGeo):
     for j in range(numberOfLevels):
@@ -152,9 +172,11 @@ for i in range(numberOfGeo):
         trans = vtk.vtkTransform()
         frac_1 = 1 - float(i)/float(numberOfGeo)
         frac_2 = float(i)/float(numberOfGeo)
-        trans.Translate(-x_min + frac_1*YofMinZ_1[j] + frac_2*YofMinZ_2[j],
+        trans.Translate(frac_1*(YofMinZStart_1[j] - YofMinZStart_1[0]) +
+                        frac_2*(YofMinZStart_2[j] - YofMinZStart_2[0]),
                         0,
-                        -z_min + frac_1*relMinsZ_1[j] + frac_2*relMinsZ_2[j])
+                        frac_1*(MinZStart_1[j] - MinZStart_1[0]) +
+                        frac_2*(MinZStart_2[j] - MinZStart_2[0]))
         transF = vtk.vtkTransformPolyDataFilter()
         transF.SetInputData(poly)
         transF.SetTransform(trans)
