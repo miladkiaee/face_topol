@@ -24,12 +24,12 @@ def resample_points(poly):
     spline.SetRightConstraint(2)
     spline.SetRightValue(0)
 
-    spFilter = vtk.vtkSplineFilter()
-    spFilter.SetInputData(cpd2.GetOutput())
-    numPoints = poly.GetNumberOfPoints()
-    spFilter.SetNumberOfSubdivisions(numPoints * 40)
-    spFilter.SetSpline(spline)
-    spFilter.Update()
+    sp_filter = vtk.vtkSplineFilter()
+    sp_filter.SetInputData(cpd2.GetOutput())
+    num_points = poly.GetNumberOfPoints()
+    sp_filter.SetNumberOfSubdivisions(num_points * 40)
+    sp_filter.SetSpline(spline)
+    sp_filter.Update()
 
     def_tol = yzl/100
 
@@ -37,7 +37,7 @@ def resample_points(poly):
     print('max p dist = ', def_tol)
 
     cpd = vtk.vtkCleanPolyData()
-    cpd.SetInputData(spFilter.GetOutput())
+    cpd.SetInputData(sp_filter.GetOutput())
     cpd.ToleranceIsAbsoluteOn()
     cpd.PointMergingOn()
     cpd.ConvertStripsToPolysOn()

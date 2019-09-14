@@ -7,8 +7,9 @@ parser.add_argument("-i", "--input", default="", help="input polydata file name"
 
 args = parser.parse_args()
 
-reader = vtk.vtkPLYReader()
+reader = vtk.vtkPolyDataReader()  # vtk.vtkPLYReader()
 reader.SetFileName(args.input)
+reader.ReadAllScalarsOn()
 reader.Update()
 pd = reader.GetOutput()
 

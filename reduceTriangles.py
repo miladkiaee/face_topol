@@ -2,6 +2,7 @@ import vtk
 
 
 def reduce_it(poly, loc):
+
     deci = vtk.vtkDecimatePro()
 
     deci.SetInputData(poly)

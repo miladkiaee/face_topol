@@ -26,22 +26,42 @@ reader.Update()
 pd = reader.GetOutput()
 
 # triangulate in case
-trif = vtk.vtkTriangleFilter()
-trif.SetInputData(pd)
-trif.Update()
+# trif = vtk.vtkTriangleFilter()
+# trif.SetInputData(pd)
+# trif.Update()
 
-pd = trif.GetOutput()
+# pd = trif.GetOutput()
 
 # removing the non manifold cells
 # pd = separate(pd, args.input)
 
 # reduce the poly data
-pd = reduce_it(pd, args.input)
+# pd = reduce_it(pd, args.input)
+
+# here lets extract the largest part
+pd2 = vtk.vtkPolyData()
+
+conn0 = vtk.vtkPolyDataConnectivityFilter()
+conn0.SetInputData(pd)
+
+conn0.InitializeSpecifiedRegionList()
+conn0.SetExtractionModeToSpecifiedRegions()
+conn0.SetExtractionModeToLargestRegion()
+conn0.Modified()
+conn0.Update()
+
+pd2.DeepCopy(conn0.GetOutput())
+
+clean = vtk.vtkCleanPolyData()
+clean.SetInputData(pd2)
+clean.Update()
+
+pd = clean.GetOutput()
 
 # smooth
-pd = smooth(pd, feature_angle=180,
-            edge_angle=180, relax=0.4, num_iter=20,
-            file_path=args.input)
+# pd = smooth(pd, feature_angle=180,
+#            edge_angle=180, relax=0.4, num_iter=20,
+#            file_path=args.input)
 
 # pd = cleaner(pd, toler=0.01)
 
@@ -70,7 +90,7 @@ numPoints = pd.GetNumberOfPoints()
 al = args.along
 
 als = vtk.vtkDoubleArray()
-als.SetName("some_component")
+als.SetName("coordiante_for_contour")
 als.SetNumberOfValues(numPoints)
 
 p = [0, 0, 0]
@@ -90,6 +110,13 @@ if al == "z":
 
 pd.GetPointData().SetScalars(als)
 
+# curv = vtk.vtkCurvatures()
+# curv.SetCurvatureType(vtk.VTK_CURVATURE_MEAN)
+# curv.SetInputData(pd)
+# curv.Update()
+
+# pd = curv.GetOutput()
+
 # ## ##
 maxNumCurves = 0
 elong = 0
@@ -100,28 +127,28 @@ maxx = 0
 minn = 0
 
 if args.along == "x":
-    maxNumCurves = 100
-    elong = 200
+    maxNumCurves = 50
+    elong = 100
     delta = abs(x_max - x_min)/1000
-    increment = abs(x_max - x_min)/100
+    increment = abs(x_max - x_min)/51
     value = x_min
     maxx = x_max
     minn = x_min
 
 if args.along == "y":
-    maxNumCurves = 100
+    maxNumCurves = 50
     elong = 100
     delta = abs(y_max - y_min)/10000
-    increment = abs(y_max - y_min)/100
+    increment = abs(y_max - y_min)/51
     value = y_min
     maxx = y_max
     minn = y_min
 
 if args.along == "z":
-    maxNumCurves = 100
-    elong = 400
+    maxNumCurves = 50
+    elong = 100
     delta = abs(z_max - z_min)/10000
-    increment = abs(z_max - z_min)/200
+    increment = abs(z_max - z_min)/51
     value = z_min
     maxx = z_max
     minn = z_min
@@ -144,13 +171,11 @@ MinZsStart = []
 YofMinZsStart = []
 
 numCurves = 0
-minNumCells = 40
+minNumCells = 30
 extremelyLow = 20
 
 # starting the find contour curves
-while numCurves < maxNumCurves and \
-        value < (minn + elong) and \
-        value < (maxx - 2*increment):
+while numCurves < maxNumCurves and value < (maxx - 2*increment):
 
     value += increment
 
@@ -165,7 +190,6 @@ while numCurves < maxNumCurves and \
     con.Update()
 
     pdc = con.GetOutput()
-    # pdc = resample_points(pdc)
 
     [bc, center, xof_small_z, yof_small_z,
      small_z, xof_small_y, zof_small_y, small_y] = information(pdc)
@@ -187,15 +211,37 @@ while numCurves < maxNumCurves and \
     numCells = pdc.GetNumberOfCells()
 
     # some checks
-    if value > maxx or \
-            numCells < minNumCells and value > mid:
+    if value > maxx:
         break
 
     # contour can contain multiple non-connected curves
     conn = vtk.vtkConnectivityFilter()
     conn.SetInputData(pdc)
+
+    conn.InitializeSpecifiedRegionList()
+    conn.SetExtractionModeToSpecifiedRegions()
+    conn.SetExtractionModeToLargestRegion()
+    conn.Modified()
     conn.Update()
-    numRegions = conn.GetNumberOfExtractedRegions()
+
+    pd2.DeepCopy(conn.GetOutput())
+
+    clean = vtk.vtkCleanPolyData()
+    clean.SetInputData(pd2)
+    clean.Update()
+
+    pdc = clean.GetOutput()
+
+    # resamplt to equidistant points
+    pdc = resample_points(pdc)
+
+    conn_after = vtk.vtkConnectivityFilter()
+    conn_after.SetInputData(pdc)
+    conn_after.Update()
+
+    numRegions = conn_after.GetNumberOfExtractedRegions()
+
+    print("Num Regions after extraction: ", numRegions)
 
     # array of sub polydata included in an individual contour
     if numRegions == 0:
@@ -211,10 +257,13 @@ while numCurves < maxNumCurves and \
     # adding to values array for saving all contours together in one file
     values.append(value)
 
+
 con = vtk.vtkContourFilter()
 con.SetInputData(pd)
+
 for i in range(len(values)):
     con.SetValue(i, values[i])
+
 con.SetArrayComponent(0)
 con.ComputeScalarsOn()
 con.Update()

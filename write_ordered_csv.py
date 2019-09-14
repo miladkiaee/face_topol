@@ -23,20 +23,38 @@ def write_ordered_csv(poly, n_curves,
         # the geodesic software preferences
         # relative to the initial coordinates of
         # the point in the curve
-        if option == "x":
-            f.write('%f, %f, %f\n' % (p[1], 0, p[2]))
-        if option == "y":
-            f.write('%f, %f, %f\n' % (p[0], p[1], p[2]))
-        if option == "z":
-            f.write('%f, %f, %f\n' % (p[0], p[2], p[1]))
+        # if option == "x":
+        #    f.write('%f, %f, %f\n' % (p[1], 0, p[2]))
+        #if option == "y":
+        #    f.write('%f, %f, %f\n' % (p[0], p[1], p[2]))
+        #if option == "z":
+        #    f.write('%f, %f, %f\n' % (p[0], p[2], p[1]))
+        f.write('%f, %f, %f\n' % (p[0], p[1], p[2]))
     f.close()
 
 
 def write_ordered(poly, n_curves, path, value):
 
-    num_p = poly.GetNumberOfPoints()
+    print("writing contour curve ..")
+
+    # connect = vtk.vtkPolyDataConnectivityFilter()
+    # connect.SetInputData(poly)
+    # connect.InitializeSpecifiedRegionList()
+    # connect.SetExtractionModeToSpecifiedRegions()
+    # connect.SetExtractionModeToLargestRegion()
+    # connect.Modified()
+    # connect.Update()
+
+    # num_regions = connect.GetNumberOfExtractedRegions()
+
+    # print("curve has num regions: ", num_regions)
 
     name = str(n_curves) + ".csv"
+
+    # for r in range(num_regions):
+
+    num_p = poly.GetNumberOfPoints()
+
     if os.path.exists(name):
         append_write = 'a'
     else:
@@ -64,7 +82,7 @@ def write_ordered(poly, n_curves, path, value):
 
     for p_id in range(first, last, step):
         poly.GetPoint(p_id, p)
-        f.write('%f, %f, %f\n' % (p[1], 0, p[2]))
+        f.write('%f, %f, %f\n' % (p[0], p[1], p[2]))
 
     f.close()
 
